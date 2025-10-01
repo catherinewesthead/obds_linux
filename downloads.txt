@@ -1,0 +1,11 @@
+Obtaining the mouse genome: 
+
+https://www.ensembl.org/Mus_musculus/Info/Index?redirect=no (date accessessed 30.09/2025; 15:30)
+I downladed the DNA sequence (FASTA), the primary assembly version. 
+
+Obtaining the mouse annotations: 
+
+https://ftp.ensembl.org/pub/release-115/gtf/mus_musculus/ (date accessed 30.09.2025; 15:31)
+I downloaded the third version of the gtf file. 
+
+I checked the 'checksums' matched those provided on the website. 
