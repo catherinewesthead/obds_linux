@@ -1,0 +1,1 @@
+/project/sedm6772/linux/3_analysis/rnaseq_commands.sh
