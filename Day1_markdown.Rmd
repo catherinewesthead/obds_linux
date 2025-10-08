@@ -1,0 +1,313 @@
+---
+title: "markdown_example"
+output:
+  html_document: default
+  pdf_document: default
+date: "2025-10-07"
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+## R Markdown
+
+This is an R Markdown document. Markdown is a simple formatting syntax for authoring HTML, PDF, and MS Word documents. For more details on using R Markdown see <http://rmarkdown.rstudio.com>.
+
+When you click the **Knit** button a document will be generated that includes both content as well as the output of any embedded R code chunks within the document. You can embed an R code chunk like this:
+
+
+```{r cars}
+summary(cars)
+```
+
+
+```{r}
+
+```
+
+###Practising my functions
+
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
+
+
+
+#Day2 
+
+#Exercise 1
+
+##Use readRDS() to load the file my_day2matrix.rds and assign the object to the name m.
+
+```{r}
+m <- readRDS("/project/shared/r/1_r_data_science/2-base/my_day2matrix.rds", refhook = NULL)
+```
+
+##Compute the sum of values in each row and add those values as a new column in the matrix
+```{r}
+new_col <- rowSums(m)
+m2 <- cbind(m, new_col)
+```
+
+##Run the command data("ToothGrowth") to load the builtin data set ToothGrowth.
+```{r}
+data("ToothGrowth")
+```
+
+##Open the help page for the ToothGrowth data set, to learn more about it.
+```{r}
+help(ToothGrowth)
+```
+
+##What is the class of the ToothGrowth object?
+##What type of data is stored in each column of the ToothGrowth data set?
+##Answers to both of these can be found in the help page
+
+##What is the mean tooth length across all observations in the data set?
+```{r}
+mean(ToothGrowth$len)
+
+```
+
+##What is maximum value of tooth length?
+```{r}
+max(ToothGrowth$len)
+```
+## What is minimum value of tooth length?
+
+```{r}
+min(ToothGrowth$len)
+```
+##Can you use the functions rowSums() and colSums() on the ToothGrowth object?
+
+```{r}
+colSums(ToothGrowth)
+```
+```{r}
+rowSums (ToothGrowth)
+```
+##This error message is because one of the row is non-numeric
+## Attempts to sum only some columns failed
+```{r}
+colSums (ToothGrowth$len, ToothGrowth$dose)
+```
+
+```{r}
+help(colSums)
+```
+
+##Here is a code that allows you to sum only numeric columns 
+```{r}
+colSums(ToothGrowth[ , c("len", "dose")])
+```
+
+#Exercise 3
+
+##Looking at the airquality data frame
+```{r}
+data("airquality")
+```
+
+##Look at the context of dataset
+```{r}
+help("airquality")
+```
+
+##Examine the dataset
+```{r}
+nrow(airquality)
+ncol(airquality)
+```
+##Display the column names of the airquality data frame
+```{r}
+colnames(airquality)
+```
+##Sort the data frame by increasing value in the Ozone column 
+### I think the command I have run here has only sorted this column, rather than rearrange the data in the data frame. 
+```{r}
+sort(airquality[ , "Ozone"])
+```
+
+##Sort the data frame by increasing value in the Ozone column 
+```{r}
+o <- order( , airquality$Ozone)
+```
+###Attempt 2
+```{r}
+o <- order(airquality$Ozone)
+```
+
+##Check it worked
+```{r}
+head(o)
+```
+```{r}
+airquality[o, ]
+```
+##Sort the data frame by Month in increasing order and Temp in decreasing order.
+###Here I have used the negative sign to get the temp in decreasing order
+```{r}
+airquality_sorted <- order(airquality$Month, -airquality$Temp)
+```
+
+##Write the latest sorted data frame to a test file format of your choice
+```{r}
+write.table(airquality_sorted, file = "airquality_sorted.txt", sep = "/t")
+```
+
+#Exercise 4
+
+##Run the code to create two data frames
+```{r}
+buildings <- data.frame(
+site = c(1, 2, 3),
+name = c("b1", "b2", "b3"))
+
+survey_data <- data.frame(
+survey = c("A", "A", "A", "B", "B", "B"),
+location = c(1, 2, 3, 2, 3, 1),
+efficiency = c(51, 64, 70, 71, 80, 58))
+
+```
+
+
+##What is the shared information in these two data frames?
+### I think the shared information is the 'site' column and the 'location' column
+
+## Use the merge() function to combine the two data frames by the shared information into a new data frame called buildings_survey
+```{r}
+buildings_survey <- merge(x = buildings, y = survey_data, by.x = "site", by.y = "location")
+```
+
+##View the merged data frames
+```{r}
+buildings_survey
+```
+
+
+#Exercise 5
+
+## Compute the mean of each numeric column each month in the airquality data frame using aggregate().
+##Make sure NA values are removed
+```{r}
+help(aggregate)
+help(airquality)
+aggregate(x = airquality, by = list(Month = airquality$Month), FUN = mean, na.rm = TRUE)
+```
+
+##Compute the mean of the Solar.R column each month
+##Make sure the grouping column is called Month in the return value
+##Make sure NA values are removed
+```{r}
+aggregate(x=airquality["Solar.R"], by = list(Month = airquality$Month), FUN = mean, na.rm = TRUE)
+```
+# Exercise 6 - Writing a function 
+
+
+## Write a function to calculate the hypotenuse of a triangle given the length of the other two sides
+```{r}
+triangle_hypotenuse <- function(a = 0, b = 0) { 
+## This finds the length of the hypotenuse of a triangle 
+message()
+total <- sqrt(a^2 + b^2)
+return(total)
+}
+
+```
+
+##Testing function
+```{r}
+triangle_hypotenuse(a = 4, b = 6)
+```
+#Exercise 7
+
+##Part1
+##Create a vector of integers from 1:10
+```{r}
+vector_int <- 1:10
+```
+## Compute the log2 of each value in the vector using either lapply() or sapply()
+```{r}
+help("lapply")
+```
+## Using lapply()
+```{r}
+lapply(vector_int, FUN = log2)
+```
+## Using sapply
+```{r}
+sapply(vector_int, FUN = log2)
+```
+##Part2
+##Create a list of four elemetnts, each element being a vector of type either numeric or logical 
+```{r}
+my_list <- list(1:4, 5:8, 19:24, 79:102)
+```
+
+## Compute the sum of each vector in the list using either lapply() or sapply()
+```{r}
+sapply(my_list, FUN = sum)
+```
+
+## Part 3
+## Use sapply() on the list created in part 2, to repeat each element of each vector 3 times
+```{r}
+sapply(my_list, rep, each = 3)
+```
+#Exercise 8
+
+## Write a for loop that iterates over the integers 1 to 7 and prints the number raised to the power of 3
+```{r}
+for (i in 1:7) {
+  print(i^3)
+}
+```
+## Write a for loop that iterates over the names of the columns in the builtin data set iris and prints each column name together with the number of characters in that column name
+#Load iris
+```{r}
+data("iris")
+```
+# find the column names
+```{r}
+colnames(iris)
+```
+```{r}
+for (colnames in "iris") {
+  print(nchar(colnames))
+}
+```
+##This code does not do what I intended: "iris" is just a character string — a one-element vector containing the text "iris".So your loop runs only once, with the value "iris".nchar(colnames) counts the number of characters in that string. "iris" has 4 letters.
+
+##Attempt 2
+```{r}
+for (name in colnames(iris)) {
+  print(nchar(colnames))
+}
+```
+##Attempt 3
+```{r}
+vector_colnames <- c("Sepal.Length", "Sepal.Width", "Petal.Length", "Petal.Width", "Species")
+```
+```{r}
+for (i in vector_colnames) {
+  print(paste(i, (nchar(i))))
+}
+```
+##Use the ifelse() function to print the name of colours that are made up of four characters in the vector my_colours below
+```{r}
+my_colours <- c("red", "orange", "purple", "yellow", "pink", "blue")
+```
+```{r}
+help(ifelse)
+ifelse (test = nchar(my_colours) == 4, yes = my_colours, no = NA)
+```
+#ifelse function: ifelse (test = the condition that needs to be fulfilled, yes = the thing that should be done when the condition is fulfilled, no = the thing that should be done when the condition is not fulfilled)
+
