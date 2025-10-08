@@ -623,5 +623,26 @@ plot(iris$Sepal.Length, iris$Sepal.Width,
 library(Rtsne)
 ```
 
+```{r}
+help("Rtsne")
+```
+## Conduct Tsne 
+```{r}
+iris_tsne <- Rtsne(iris_features, 
+                   dims = 2, 
+                   perplexity = 30,  
+                   check_duplicates = FALSE,
+                   pca = TRUE, 
+                   verbose = TRUE)
+```
 
+## Plot Tsne
+```{r}
+plot(iris_tsne$Y, 
+     col = iris$Species,
+     pch = 19,
+     xlab = "t-SNE 1",
+     ylab = "t-SNE 2",
+     main = "t-SNE Projection of Iris Data" )
+```
 
