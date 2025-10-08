@@ -628,6 +628,7 @@ help("Rtsne")
 ```
 ## Conduct Tsne 
 ```{r}
+set.seed(42)
 iris_tsne <- Rtsne(iris_features, 
                    dims = 2, 
                    perplexity = 30,  
