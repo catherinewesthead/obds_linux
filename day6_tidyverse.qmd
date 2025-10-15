@@ -1,0 +1,205 @@
+---
+title: 'Template: Integrated exercise using the <i class="fab fa-r-project"></i> tidyverse'
+author: "Kevin Rue-Albrecht"
+date: "2023-06-09"
+date-format: long
+format: html
+---
+
+```{r}
+#| label: load-packages
+#| include: false
+
+library(tidyverse)
+library(readxl)
+```
+
+## Exercise
+
+### Part 1
+
+We provide you with an Excel file that contains gene expression data for the nine most highly variable genes in a pancreas cancer gene expression dataset (<https://portal.gdc.cancer.gov/projects/TCGA-PAAD>), as well as metadata for the individual samples and genes.
+
+- Import the gene expression matrix from the Excel file into the R session as a `tibble`.
+  Assign it to an object named `exprs_assay`.
+  
+##Copy the file into the page
+  
+```{r}
+file.copy("/project/shared/r/1_r_data_science/7-tidyverse-workflow/EH2011.xlsx", ".")
+```
+  
+
+```{r}
+library(readr)
+excel_sheets("EH2011.xlsx")
+exprs_assay <- read_excel("EH2011.xlsx", sheet = "exprs")
+exprs_assay
+```
+
+## This data is genes in the left column. The other columns are TCGA (The Cancer Genome Atlas) followed by patient ID.
+- Reshape the gene expression matrix in a tidy format.
+  Assign it to a new object `exprs_assay_long`.
+  
+## The -gene means to pivot all columns apart from this one. The '-' can be replaced with an '!' which is safer than the '-' when not pivoting multiple columns 
+
+```{r}
+exprs_assay_long <- exprs_assay %>%
+pivot_longer(
+cols = -gene,
+names_to = "sample_ID",
+values_to = "gene_expression"
+)
+      
+exprs_assay_long
+```
+
+- Draw a histogram of gene expression levels for each gene in a separate facet.
+
+```{r}
+ggplot(exprs_assay_long, aes(x = gene_expression, fill = gene))+
+geom_histogram(color = "black", linewidth = 0.1) +
+labs(title = "Gene Expression") +
+facet_wrap(~gene, nrow = 3) + 
+theme_bw() +
+theme(
+panel.grid = element_blank(),
+legend.text = element_text(size = 6), legend.key.size = unit(6, "mm")
+)
+
+
+
+```
+
+## Exercise
+
+### Part 2
+
+- Import the sample metadata from the Excel file into the R session as a `tibble`.
+  Assign it to an object named `sample_info`.
+
+```{r}
+excel_sheets("EH2011.xlsx")
+sample_info <- read_excel("EH2011.xlsx", sheet = "sample_info")
+sample_info
+```
+
+> Metadata key:
+> 
+> [NIH AJCC staging system](https://www.cancer.gov/publications/dictionaries/ca> ncer-terms/def/ajcc-staging-system)
+> 
+> - grade: how abnormal the cancer cells and tissue look under a microscope
+> - T: size of the tumor and any spread of cancer into nearby tissue
+> - N: spread of cancer to nearby lymph nodes
+> - M: metastasis (spread of cancer to other parts of the body)
+
+- Convert the four columns above to the factor type.
+
+```{r}
+sample_info <- sample_info %>%
+mutate(
+  across(c(grade, T, N, M), as.factor) 
+)
+
+sample_info
+```
+
+- Combine sample information with gene expression data.
+  Assign the output to `exprs_sampleinfo`.
+
+```{r}
+exprs_sampleinfo <- sample_info %>%
+full_join(exprs_assay_long, by = c("unique_patient_ID" = "sample_ID") ) %>%
+arrange(sex, unique_patient_ID)
+
+exprs_sampleinfo
+```
+
+## Exercise
+
+### Part 3
+
+- Identify the gene with the largest absolute difference in expression between male and female patients.
+- Difference in mean expression
+
+For this exercise I want to: 
+#Calculate the mean expression for each gene in males and females
+#Calculate the absolute difference in these values
+#Compute which gene has the largest absolute difference
+
+```{r}
+exprs_sampleinfo %>% 
+summarise(mean_expression = mean(gene_expression), .by = c(gene, sex)) %>%
+arrange(gene, sex) %>%
+summarise(
+  diff_expression = diff(mean_expression),
+  .by = gene) %>%
+arrange(desc(diff_expression))
+
+```
+# From these calculations the gene with the largest absolute difference in expression would appear to be XIST
+
+- Visualise the expression of that gene across tumour grades.
+  Facet by `sex`.
+  Color by `T` score.
+
+```{r}
+table_for_ggplot <- exprs_sampleinfo %>% 
+filter(gene == "XIST") %>%
+na.omit()
+table_for_ggplot
+```
+
+```{r}
+ggplot(table_for_ggplot, aes(x = grade, y = gene_expression, color = T)) +
+geom_point() +
+facet_wrap(~sex) +
+labs(title = "Gene Expression of XIST by Tumour Grade in Females and Males",
+     x = "Tumour Grade",
+     y = "Gene Expression")
+```
+```{r}
+ggplot(table_for_ggplot, aes(x = grade, y = gene_expression, color = T)) +
+geom_jitter(
+position = position_jitterdodge(jitter.width = 0.1, dodge.width = 0.6)) +
+facet_wrap(~sex) +
+labs(title = "Gene Expression of XIST by Tumour Grade in Females and Males",
+     x = "Tumour Grade",
+     y = "Gene Expression")
+```
+## Extra thing: try drawing a violin plot for this data, it would be better visualisation
+```
+
+- Draw a heat map of all nine genes.
+  Remove labels as well as ticks for the x-axis.
+  Remove the panel grid and background.
+
+```{r}
+ggplot(exprs_sampleinfo, aes(x = unique_patient_ID, y = gene, fill = gene_expression), color = "grey50") +
+geom_tile() + 
+labs( x = "Sample") +
+theme(
+axis.text.x = element_blank(),
+axis.ticks.x = element_blank(),
+panel.background = element_blank(),
+panel.grid = element_blank()
+)
+```
+
+- Repeat the heat map, grouping samples by sex.
+
+```{r}
+# Copy the code chunk above and tweak the aes(...) contents.
+ggplot(exprs_sampleinfo, aes(x = unique_patient_ID, y = gene, fill = gene_expression, color = sex)) +
+geom_raster() + 
+labs( x = "Sample") +
+theme(
+axis.text.x = element_blank(),
+axis.ticks.x = element_blank(),
+panel.background = element_blank(),
+panel.grid = element_blank()
+) +
+facet_wrap(~sex, scales = "free_x")
+```
+
+##There is a version of interaction terms in base-r using the aes section, but Kevin thinks this is better
