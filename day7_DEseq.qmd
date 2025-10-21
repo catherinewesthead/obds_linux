@@ -279,12 +279,14 @@ dispersions(dds)
   Display the result without assigning it to any object.
 
 ```{r}
-
+dds[1:5, 1:4]
 ```
 
 ## Exercise
 
 ### Filter out lowly genes expressed
+
+# Counts are the number of mapped reads assigned to each gene 
 
 - Use the functions `counts()` and `rowSums()`
   to count the number of samples in which each gene is expressed
@@ -294,11 +296,28 @@ dispersions(dds)
   Display the object `dds_filtered`.
 
 ```{r}
-dds_filtered <- 
+dds_filtered <- dds[rowSums(counts(dds) > 0) >=4, ]
 dds_filtered
+head(counts(dds_filtered))
+
+
 ```
+# This can be explained using this logic: 
+#This can be done in a few different steps to make it simpler
+counts(dds) > 0 
+# This determines if any counts are >0 by using TRUE and FALSE
+rowSums(counts(dds) > 0)
+# This tells you for each gene in how many samples it is expressed
+dds_filtered <- dds[rowSums(counts(dds) > 0) >=4, ]
 
 **How many genes remain after filtering?**
+# If the number of rows are the numbers of genes remaining I have 19053 
+```{r}
+rowSums(counts(dds_filtered))
+dds_filtered
+counts(dds_filtered)
+```
+
 
 ### Bonus point(s)
 
@@ -309,17 +328,26 @@ Explore different cut-offs and filtering strategies, e.g.
 - Keep only genes detected above the read count cut-off in all the samples of either cell type.
 
 ```{r}
-keep <- 
-  
-  
-  
-  
-  
-  
-  
-  
-  
-  
+dds[rowSums(counts(dds) > 10) >=2, ]
+```
+
+
+```{r}
+keep <- counts(dds) %>%
+  as.data.frame() %>%
+  rownames_to_column("gene_id") %>%
+  as_tibble() %>%
+  pivot_longer(!gene_id) %>%
+  left_join(
+    colData(dds) %>% as_tibble(),
+    by = c("name" = "sample_id")
+  ) %>%
+  group_by(gene_id, cell_type) %>%
+  summarise(all_samples = all(value > 0)) %>%
+  summarise(all_samples_any_celltype = any(all_samples)) %>%
+  filter(all_samples_any_celltype) %>%
+  pull(gene_id)
+
   
   
 dds[keep, ]
@@ -336,8 +364,9 @@ dds[keep, ]
   What is the class of the object?
 
 ```{r}
-dds_rlog <- rlog( )
+dds_rlog <- rlog(dds_filtered, blind = TRUE )
 dds_rlog
+class(dds_rlog)
 ```
 
 ### Bonus point(s)
@@ -349,7 +378,7 @@ dds_rlog
   What is the class of the object?
 
 ```{r}
-dds_vst <- vst( )
+dds_vst <- vst(dds_filtered, blind= TRUE )
 dds_vst
 ```
 
@@ -368,11 +397,21 @@ Using either of the objects `dds_rlog` or `dds_vst` produced earlier.
   Set the argument `intgroup` to `"cell_type"`.
 
 ```{r}
-plotPCA( ) +
+plotPCA(
+  dds_vst, 
+  intgroup = "cell_type" ) +
+    coord_fixed(ratio = 5)
+```
+```{r}
+plotPCA(
+  dds_rlog, 
+  intgroup = "cell_type" ) +
     coord_fixed(ratio = 5)
 ```
 
+
 **How many samples do you count?**
+# On the rlog plot there are 6 samples. On the vst plot there appear to be 5 samples. This is because there is one duplicate sample. 
 
 ### Bonus point(s)
 
@@ -383,11 +422,19 @@ plotPCA( ) +
 
 ```{r, message=FALSE}
 library(pheatmap)
-dds_cor <- 
-pheatmap( )
+dds_cor <- cor(assay(dds_rlog), method = "spearman")
+pheatmap(dds_cor )
+```
+```{r, message=FALSE}
+library(pheatmap)
+dds_cor_vst <- cor(assay(dds_vst), method = "spearman")
+pheatmap(dds_cor_vst )
+```
 ```
 
+
 **What can you tell from the scale of correlation values?**
+There appear to be two duplicated samples: '82 and 88' and '83 and 89'
 
 - Use the functions `assay()`, `t()` and `dist()`
   to compute the Euclidean distance matrix between samples.
@@ -396,25 +443,37 @@ pheatmap( )
 
 ```{r, message=FALSE}
 library(RColorBrewer)
-dds_dist <- 
+dds_dist <- dist(t(assay(dds_vst)))
 blue_colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
 pheatmap(,
     color = blue_colors
 )
 ```
 
+```{r}
+library(RColorBrewer)
+dds_dist <- dist(t(assay(dds_vst)))
+dds_dist <- as.matrix(dds_dist)
+blue_colors <- colorRampPalette( rev(brewer.pal(9, "Blues")) )(255)
+pheatmap(dds_dist,
+    color = blue_colors
+)
+```
+
 - Confirm that the suspicious samples are duplicate of each other.
+
+
 
 ```{r}
 # first pair of duplicates
 identical(
-    counts(dds_filtered)[, ],
-    counts(dds_filtered)[, ]
+    counts(dds_filtered)[ ,"ERR1755083"],
+    counts(dds_filtered)[ ,"ERR1755089"]
 )
 # second pair of duplicates
 identical(
-    counts(dds_filtered)[, ],
-    counts(dds_filtered)[, ]
+    counts(dds_filtered)[ ,"ERR1755082"],
+    counts(dds_filtered)[ ,"ERR1755088"]
 )
 ```
 
@@ -425,8 +484,22 @@ identical(
 
 ```{r}
 keep <- 
-dds_filtered_unique <- dds_filtered[, keep]
+dds_filtered_unique <- dds_filtered[, setdiff(colnames(dds_filtered) , c("ERR1755089", "ERR1755088" ))]
 dds_filtered_unique
+```
+## dds_filtered_unique <- dds_filtered[, !colnames(dds_filtered) %in% c("ERR1755089", "ERR1755088")]
+Marys version: 
+```{r}
+keep <- setdiff(colnames(dds_filtered), c("ERR1755089", "ERR1755088"))
+dds_filtered_unqiue <- dds_filtered[ , keep]
+```
+
+## This is an alternative code which uses a different method of subsetting. 
+
+
+# Display the sample metadata
+```{r}
+metadata(dds_filtered_unique)
 ```
 
 ## Exercise
@@ -439,11 +512,11 @@ dds_filtered_unique
   with respect to the differential expression analysis that we wish to perform.
 
 ```{r}
-
+design(dds_filtered_unique)
 ```
 
 ```{r}
-
+colData(dds_filtered_unique)
 ```
 
 - Use the function `DESeq()` to perform the differential expression analysis
@@ -452,7 +525,7 @@ dds_filtered_unique
   Display the object.
 
 ```{r}
-dds_filtered_unique <- DESeq( )
+dds_filtered_unique <- DESeq(dds_filtered_unique )
 dds_filtered_unique
 ```
 
@@ -463,29 +536,36 @@ dds_filtered_unique
   Assign the result to an object called `dds_results`.
 
 ```{r}
-dds_results <- results( )
+dds_results <- results(dds_filtered_unique)
 dds_results
+resultsNames(dds_filtered_unique)
+```
+# Mary's version - this makes sure what your relative comparison is correct. 
+```{r}
+dds_results <- results(dds_filtered_unique, contrast = c("cell-type", "CD4", "CD8"))
+dds_results
+resultsNames(dds_filtered_unique)
 ```
 
 **How do you know that extracted the results for the desired contrast?**
 
 > Answer:
-> 
+> When you call 'resultsNames' it states cell_type_CD4_vs_CD8. This means it is comparing CD4 to CD8
 > 
 > 
 
 ```{r}
-results( )
+results(dds_filtered_unique)
 ```
 
 - What does the function `summary()` tell you about the object `dds_results`?
 
 ```{r}
-summary(dds_results)
+summary(dds_results, alpha = 0.05)
 ```
 
 > Answer:
-> 
+> The function summary describes how many genes are up/down regulated, how many outliers there are and how many genes have been excluded owing to low counts. 
 > 
 > 
 > 
@@ -494,7 +574,21 @@ summary(dds_results)
 
 ```{r}
 x <- dds_results %>% 
-  
-  
-write_csv( )
+as.data.frame() %>%
+rownames_to_column("gene_id") 
+write_csv(x, "diffexp_csv")
 ```
+
+
+#Create an MA plot 
+```{r}
+dds_shrink <- lfcShrink(dds_filtered_unique, coef = 2)
+plotMA(dds_shrink)
+```
+
+#Create a histogram of p-values
+```{r}
+ggplot(as.data.frame(x), aes(pvalue))+
+geom_histogram(fill = "skyblue")
+```
+
